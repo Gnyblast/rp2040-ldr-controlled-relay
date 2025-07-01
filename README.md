@@ -1,29 +1,28 @@
 # Waveshare RP2040 Sensor Relay Controller
 
-A MicroZig-based project for Waveshare MCU boards with RP2040 chip that controls a relay based on sensor input and provides visual feedback through WS2812 LEDs.
+A MicroZig-based project for Waveshare MCU boards with RP2040 chip that controls a relay based on sensor input and provides visual feedback through integrated WS2812 LEDs.
 
 ## Features
 
 - **Sensor Monitoring**: Reads analog sensor data via ADC (GPIO28/AIN2)
 - **Relay Control**: Controls a relay on GPIO29 based on sensor threshold
-- **LED Feedback**: 5x5 WS2812 LED matrix on GPIO16 for visual status indication
+- **LED Feedback**: 5x5 integrated WS2812 LED matrix on GPIO16 for visual status indication
 - **Automatic Operation**: Continuous monitoring with 1-second intervals
 
 ## Hardware Requirements
 
-- Waveshare MCU board with RP2040 chip
-- WS2812 LED strip/matrix (25 LEDs in 5x5 configuration)
+- Waveshare MCU board with RP2040 chip (with integrated WS2812 LEDs)
 - Relay module
 - Analog sensor (connected to GPIO28)
-- Appropriate power supply for LEDs and relay
+- Appropriate power supply for relay
 
 ## Pin Configuration
 
-| GPIO   | Function      | Direction   |
-| ------ | ------------- | ----------- |
-| GPIO16 | WS2812 LEDs   | Output      |
-| GPIO28 | Sensor Input  | Input (ADC) |
-| GPIO29 | Relay Control | Output      |
+| GPIO   | Function               | Direction   |
+| ------ | ---------------------- | ----------- |
+| GPIO16 | Integrated WS2812 LEDs | Output      |
+| GPIO28 | Sensor Input           | Input (ADC) |
+| GPIO29 | Relay Control          | Output      |
 
 ## Operation
 
