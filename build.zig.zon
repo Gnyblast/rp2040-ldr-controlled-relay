@@ -37,8 +37,16 @@
     // internet connectivity.
     .dependencies = .{
         .microzig = .{
-            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.14.1/microzig.tar.gz",
-            .hash = "microzig-0.14.1-D20YSWs2CAC8_NXi4HglJctgh00Fst0GQFl3s1TQKbx-",
+            .url = "git+https://github.com/Gnyblast/microzig#4bfc6dff798054055a9c98c3bfe8479b8a0f1937",
+            .hash = "microzig-0.14.2-D20YSX4t-gDWRAvgkltuGE7DePk0RlWZ4WRGCFfG_7kh",
+        },
+        .cron = .{
+            .url = "https://github.com/Gnyblast/cron/archive/refs/heads/datetime.tar.gz",
+            .hash = "cron-0.3.0-joDqxBDpAADvfbQpqZZf36UqHXvfcFKoxvEiaA8VN8iM",
+        },
+        .font8x8 = .{
+            .url = "git+https://github.com/Gnyblast/zig-ssd1306-gddram-fonts#3298fc4a70a98892ac565b85e05399daf6f0dcb9",
+            .hash = "ssd1306_font_8x8-0.0.0-oGb_cDhYAADPyxWw60OF6HXQBQRJHFuLkRExu8Gwp7CQ",
         },
     },
     .paths = .{

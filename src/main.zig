@@ -1,10 +1,15 @@
 const std = @import("std");
 const microzig = @import("microzig");
-const rp2xxx = microzig.hal;
+const cron = @import("cron").Cron;
+const datetime = @import("cron").datetime;
 const time = rp2xxx.time;
+const mz_time = microzig.drivers.time;
+const rp2xxx = microzig.hal;
 const gpio = rp2xxx.gpio;
 const Pio = rp2xxx.pio.Pio;
+const i2c = rp2xxx.i2c;
 const StateMachine = rp2xxx.pio.StateMachine;
+const font8x8 = @import("font8x8");
 
 // Compile-time pin configuration
 const pin_config = rp2xxx.pins.GlobalConfiguration{
@@ -15,6 +20,22 @@ const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO28 = .{
         .name = "sensor",
         .direction = .in,
+    },
+    .GPIO8 = .{
+        .name = "SDA",
+        .function = .I2C0_SDA,
+        .schmitt_trigger = .enabled,
+        .slew_rate = .slow,
+        .pull = .up,
+        .direction = .out,
+    },
+    .GPIO9 = .{
+        .name = "SCL",
+        .function = .I2C0_SCL,
+        .schmitt_trigger = .enabled,
+        .slew_rate = .slow,
+        .pull = .up,
+        .direction = .out,
     },
 };
 
@@ -78,9 +99,15 @@ const brightness: [256]u8 = blk: {
     break :blk data;
 };
 
+const i2c0 = i2c.instance.num(0);
+const lcd_address = rp2xxx.i2c.Address.new(0x3C);
+
 pub fn main() void {
     pin_config.apply();
     rp2xxx.adc.apply(.{});
+    rp2xxx.i2c.I2C.apply(i2c0, .{ .baud_rate = 400_000, .clock_config = rp2xxx.clock_config });
+    rp2xxx.rtc.apply(rp2xxx.clock_config);
+
     pio.gpio_init(led_pin);
     sm_set_consecutive_pindirs(pio, sm, @intFromEnum(led_pin), 1, true);
     const cycles_per_bit: comptime_int = ws2812_program.defines[0].value + //T1
@@ -121,6 +148,16 @@ pub fn main() void {
         pio.sm_blocking_write(sm, @bitCast(color));
     }
 
+    const I2C_DEVICE = rp2xxx.drivers.I2C_Device.init(i2c0, lcd_address, null);
+    const lcd = microzig.drivers.display.ssd1306.init(.i2c, I2C_DEVICE, null) catch unreachable;
+    lcd.clear_screen(false) catch unreachable;
+    const print_val = "Hello World!";
+    var buff: [96]u8 = undefined;
+    lcd.write_gdram(font8x8.Fonts.draw(&buff, print_val)) catch {
+        pins.relay.put(OPEN);
+    };
+
+    var c = cron.init();
     while (true) : (time.sleep_ms(1000)) {
         for (&screen) |*row| {
             for (row) |*pix| {
@@ -135,14 +172,36 @@ pub fn main() void {
         for (@as([25]RGB, @bitCast(screen))) |color| {
             pio.sm_blocking_write(sm, @bitCast(color));
         }
-        const val = rp2xxx.adc.convert_one_shot_blocking(.ain2) catch {
-            continue;
-        };
-        if (val < 2000) {
+
+        c.parse("21 15 * * *") catch |err| {
+            const error_name = @errorName(err);
+            var new_buff: [100]u8 = undefined;
+            lcd.write_gdram(font8x8.Fonts.draw(&new_buff, error_name)) catch {
+                pins.relay.put(OPEN);
+            };
             pins.relay.put(OPEN);
-        } else {
-            pins.relay.put(CLOSE);
-        }
+        };
+
+        //const a: rp2xxx.i2c.Address = rp2xxx.i2c.Address.new(0x68);
+        //const reg: [1]u8 = .{0x00};
+        //_ = i2c0.write_blocking(a, &reg, mz_time.Duration.from_ms(100)) catch continue;
+
+        //var rx_data: [7]u8 = undefined;
+        //_ = i2c0.read_blocking(a, &rx_data, mz_time.Duration.from_ms(100)) catch continue;
+
+        //const second = bcdToDec(rx_data[0]);
+        //const minute = bcdToDec(rx_data[1]);
+        //const hour = bcdToDec(rx_data[2] & 0b0011_1111); // Mask out 12/24h bits
+        //const day = bcdToDec(rx_data[4]);
+        //const month = bcdToDec(rx_data[5] & 0x1F); // Mask out century bit
+        //const year = bcdToDec(rx_data[6]);
+
+        //const now = datetime.Datetime.create(year, month, day, hour, minute, second, 0, datetime.timezones.Asia.Nicosia) catch continue;
+        //const next = c.next(now) catch continue;
+
+        //if (next.sub(now).seconds < 59) {
+        //    pins.relay.put(OPEN);
+        //}
     }
 
     for (&screen) |*row| {
@@ -178,4 +237,8 @@ fn sm_set_consecutive_pindirs(_pio: Pio, _sm: StateMachine, pin: u5, count: u3, 
         },
     });
     sm_regs.pinctrl.raw = pinctrl_saved;
+}
+
+fn bcdToDec(v: u8) u8 {
+    return ((v >> 4) * 10) | (v & 0x0F);
 }
